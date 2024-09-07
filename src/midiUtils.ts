@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { ProgramChange, CCMessage, Slider, CCException } from '../types/types'; // Import the types for Program Change and CC messages
+import { MidiDevice, ProgramChange, CCMessage, Slider, CCException } from '../types/types'; // Import the types for Program Change and CC messages
 
 const MaxMidiChannel = 4; // Define the maximum number of MIDI channels
 
-const useMidiHelpers = (selectedDevice: any) => {
+const useMidiHelpers = () => {
+  const [selectedDevice, setSelectedDevice] = useState<MidiDevice | null>(null);
   const [ccExceptions, setCCExceptions] = useState< CCException[]>([]);
   const [nextExceptionId, setNextExceptionId] = useState(1);
   const [sliders, setSliders] = useState<Slider[]>([]); // Replace 'any' with the appropriate type for sliders
@@ -123,7 +124,9 @@ const useMidiHelpers = (selectedDevice: any) => {
     setCCExceptions,
     setNextExceptionId,
     sliders,
-    setSliders
+    setSliders,
+    selectedDevice,
+    setSelectedDevice,
   };
 };
 

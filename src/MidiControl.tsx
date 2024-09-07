@@ -11,7 +11,6 @@ const MaxMidiChannel = 4;
 const MidiControl: React.FC = () => {
   const [midiAccess, setMidiAccess] = useState<WebMidi.MIDIAccess | null>(null);
   const [outputDevices, setOutputDevices] = useState<MidiDevice[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<MidiDevice | null>(null);
   const [nextSliderId, setNextSliderId] = useState(1);
   const {
     ccExceptions,
@@ -29,8 +28,10 @@ const MidiControl: React.FC = () => {
     setCCExceptions,
     setNextExceptionId,
     sliders,
-    setSliders
-  } = useMidiHelpers(selectedDevice);
+    setSliders,
+    selectedDevice,
+    setSelectedDevice
+  } = useMidiHelpers();
   useEffect(() => {
     if (navigator.requestMIDIAccess) {
       navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
@@ -40,7 +41,7 @@ const MidiControl: React.FC = () => {
   }, []);
   const saveStateToLocalStorage = () => {
     const state = {
-      selectedDevice,
+      selectedDevice: selectedDevice?.name,
       sliders,
       ccExceptions
     };
@@ -50,7 +51,7 @@ const MidiControl: React.FC = () => {
     const state = localStorage.getItem('midiControlState');
     if (state) {
       const { selectedDevice, sliders, ccExceptions } = JSON.parse(state);
-      setSelectedDevice(selectedDevice);
+      handleDeviceChange(selectedDevice);
       setSliders(sliders);
       setCCExceptions(ccExceptions);
     }
@@ -80,9 +81,8 @@ const MidiControl: React.FC = () => {
     console.error('Could not access your MIDI devices.');
   };
 
-  const handleDeviceChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const deviceId = event.target.value;
-    const device = outputDevices.find((d) => d.id === deviceId) || null;
+  const handleDeviceChange = (deviceId: string) => {
+    const device = outputDevices.find((d) => d.name === deviceId) || null;
     setSelectedDevice(device);
   };
 
@@ -152,10 +152,10 @@ const MidiControl: React.FC = () => {
         </button>
       </div>
       <h2>RP-X Midi Chaos</h2>
-      <select onChange={handleDeviceChange} value={selectedDevice?.id || ''} className={styles.select}>
+      <select onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleDeviceChange(e.target.value)} value={selectedDevice?.name || ''} className={styles.select}>
         <option value="">-- Choose Midi OUT --</option>
         {outputDevices.map((device) => (
-          <option key={device.id} value={device.id}>
+          <option key={device.name} value={device.name}>
             {device.name}
           </option>
         ))}
