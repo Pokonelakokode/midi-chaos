@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './MidiControl.module.scss';
 import useMidiHelpers from './midiUtils';
 import { MidiDevice, CCMessage, ProgramChange, WaveformType } from '../types/types';
+import MidiSlider from './components/MidiSlider/MidiSlider';
 
 const MaxMidiChannel = 4;
 
@@ -37,7 +38,28 @@ const MidiControl: React.FC = () => {
       alert('WebMIDI is not supported in this browser.');
     }
   }, []);
+  const saveStateToLocalStorage = () => {
+    const state = {
+      selectedDevice,
+      sliders,
+      ccExceptions
+    };
+    localStorage.setItem('midiControlState', JSON.stringify(state));
+  };
+  const loadStateFromLocalStorage = () => {
+    const state = localStorage.getItem('midiControlState');
+    if (state) {
+      const { selectedDevice, sliders, ccExceptions } = JSON.parse(state);
+      setSelectedDevice(selectedDevice);
+      setSliders(sliders);
+      setCCExceptions(ccExceptions);
+    }
+  };
+  // useEffect(() => {
+  //   saveStateToLocalStorage();
+  // }, [selectedDevice, sliders, ccExceptions]);
 
+  
 
   const onMIDISuccess = (midi: WebMidi.MIDIAccess) => {
     setMidiAccess(midi);
@@ -120,6 +142,15 @@ const MidiControl: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      <div className={styles.saveLoadContainer}>
+      
+        <button onClick={saveStateToLocalStorage} className={styles.saveButton}>
+          Save State
+        </button>
+        <button onClick={() => loadStateFromLocalStorage()} className={styles.loadButton}>
+          Load State
+        </button>
+      </div>
       <h2>RP-X Midi Chaos</h2>
       <select onChange={handleDeviceChange} value={selectedDevice?.id || ''} className={styles.select}>
         <option value="">-- Choose Midi OUT --</option>
@@ -142,124 +173,21 @@ const MidiControl: React.FC = () => {
       <button onClick={handleAddCCException} disabled={!selectedDevice} className={styles.button}>
         Random CC Exceptions
       </button>
-
-      {sliders?.map(slider => (
-        <div key={slider.id} className={styles.sliderContainer}>
-          <label>
-            Type:
-            <select value={slider.type} onChange={(e) => handleTypeChange(slider.id, e.target.value as 'cc' | 'program')} className={styles.select}>
-              <option value="cc">Midi CC#</option>
-              <option value="program">Program Change</option>
-            </select>
-          </label>
-
-          <label>
-            Midi Channel:
-            <select value={slider.channel === 'all' ? 'all' : slider.channel} onChange={(e) => handleChannelChange(slider.id, e.target.value === 'all' ? 'all' : parseInt(e.target.value))} className={styles.select}>
-              {Array.from({ length: MaxMidiChannel + 1 }, (_, i) => i).map(channel => (
-                <option key={channel} value={channel === MaxMidiChannel ? 'all' : channel}>
-                  {channel === MaxMidiChannel ? 'ALL' : channel}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {slider.type === 'cc' && (
-            <label>
-              CC Number:
-              <select value={slider.ccNumber} onChange={(e) => handleCCNumberChange(slider.id, parseInt(e.target.value))} className={styles.select}>
-                {Array.from({ length: 127 }, (_, i) => i + 1).map(cc => (
-                  <option key={cc} value={cc}>
-                    {cc}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <input
-            type="range"
-            min="0"
-            max={slider.type === 'cc' ? 127 : 127}
-            value={slider.value}
-            onChange={(e) => handleSliderChange(slider.id, parseInt(e.target.value))}
-            className={styles.range}
+      <div className={styles.sliderContainer}>
+        {sliders.map(slider => 
+          <MidiSlider
+            key={slider.id}
+            slider={slider}
+            MaxMidiChannel={MaxMidiChannel}
+            handleTypeChange={handleTypeChange}
+            handleChannelChange={handleChannelChange}
+            handleCCNumberChange={handleCCNumberChange}
+            handleSliderChange={handleSliderChange}
+            handleRemoveSlider={handleRemoveSlider}
           />
-          <span className={styles.value}>Value: {slider.value}</span>
-
-          {/* LFO Modulation Settings */}
-          <div className={styles.lfoSettings}>
-            <label>
-              LFO:
-              <input
-                type="checkbox"
-                checked={!!slider.lfo?.enabled}
-                onChange={(e) => handleLFOChange(slider.id, e.target.checked, slider.lfo?.frequency || 0.01, slider.lfo?.minAmplitude || 0, slider.lfo?.maxAmplitude || 127)}
-              />
-            </label>
-            {slider.lfo?.enabled && (
-              <div>
-                <div className={styles.waveformSelect}>
-                  <label>Waveform: </label>
-                  <select
-                    value={slider.lfo.waveform}
-                    onChange={(e) => handleLFOChange(slider.id, true, slider.lfo.frequency, slider.lfo.minAmplitude, slider.lfo.maxAmplitude, e.target.value as WaveformType)}
-                    className={styles.select}
-                  >
-                    <option value="triangle">Triangle</option>
-                    <option value="ramp up">Ramp Up</option>
-                    <option value="ramp down">Ramp Down</option>
-                    <option value="square">Square</option>
-                    <option value="random">Random</option>
-                  </select>
-                </div>
-                <label className={styles.frequency}>
-                  Frequency:
-                  <input
-                    type="range"
-                    min="0.0001"
-                    max="3"
-                    step="0.0001"
-                    value={slider.lfo.frequency}
-                    onChange={(e) => handleLFOChange(slider.id, true, parseFloat(e.target.value), slider.lfo.minAmplitude, slider.lfo.maxAmplitude)}
-                    className={styles.range}
-                  />
-                  <span>{slider.lfo.frequency}</span>
-                </label>
-                <label className={styles.minAmplitude}>
-                  Min:
-                  <input
-                    type="range"
-                    min="0"
-                    max="127"
-                    value={slider.lfo.minAmplitude}
-                    onChange={(e) => handleLFOChange(slider.id, true, slider.lfo.frequency, parseInt(e.target.value), slider.lfo.maxAmplitude)}
-                    className={styles.range}
-                  />
-                  <span>{slider.lfo.minAmplitude}</span>
-                </label>
-                <label className={styles.maxAmplitude}>
-                  Max:
-                  <input
-                    type="range"
-                    min="0"
-                    max="127"
-                    value={slider.lfo.maxAmplitude}
-                    onChange={(e) => handleLFOChange(slider.id, true, slider.lfo.frequency, slider.lfo.minAmplitude, parseInt(e.target.value))}
-                    className={styles.range}
-                  />
-                  <span>{slider.lfo.maxAmplitude}</span>
-                </label>
-              </div>
-            )}
-          </div>
-
-          {/* Remove Button for Slider */}
-          <button onClick={() => handleRemoveSlider(slider.id)} className={styles.removeButton}>
-            X
-          </button>
-        </div>
-      ))}
+        )}
+      </div>
+      
 
       {ccExceptions?.map(exception => (
         <div key={exception.id} className={styles.ccExceptionContainer}>

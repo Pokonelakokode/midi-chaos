@@ -1,3 +1,5 @@
+import CCExceptionBar from "../src/components/CCException/CCExcepton";
+
 export interface MidiDevice {
   id: string;
   name: string;
@@ -52,3 +54,4 @@ export interface ProgramChange {
   programNumber: number;
   channel: number;
 }
+export type CCException = {id: number; ccNumber: number; channel: number | 'all'}

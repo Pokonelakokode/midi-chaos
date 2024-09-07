@@ -1,34 +1,6 @@
 /* Define color variables */
 // Base Colors
-$background-color: #f9f9f9; // Very Light Gray
-$box-shadow-color: rgba(0, 0, 0, 0.1); // Light Shadow
-$text-color: #000000; // Black
-$border-color: #ccc; // Light Gray
-
-// Button Colors
-$button-bg-color: #007bff; // Bright Blue
-$button-hover-bg-color: #0056b3; // Darker Blue
-$button-disabled-bg-color: #ccc; // Light Gray
-$remove-button-bg-color: #ffffff; // White
-$remove-button-color: #ff0000; // Bright Red
-
-// Input Colors
-$input-bg-color: #f8f3f3; // Very Light Pink
-$input-text-color: #333333; // Dark Gray
-$input-border-color: #000000; // Black
-
-// Complementary Colors
-$success-color: #28a745; // Green
-$warning-color: #ffca28; // Amber
-$info-color: #17a2b8; // Cyan
-$muted-color: #6c757d; // Muted Gray
-$highlight-color: #fd7e14; // Orange
-
-// Additional Colors
-$header-footer-bg-color: #e9ecef; // Light Gray
-$link-color: #0056b3; // Blue
-$card-bg-color: #ffffff; // White
-
+@import './styles/variables.scss';
 
 .container {
   position: absolute;
@@ -41,7 +13,28 @@ $card-bg-color: #ffffff; // White
   box-shadow: 0 2px 4px $box-shadow-color;
   overflow: auto; /* Ensure content is scrollable if it overflows */
 }
+.saveLoadContainer {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  top: 20px;
+  right: 50px;
+  .saveButton {
+  
+    background-color: red;
+    border-radius: 8px;
+    color: white;
+    padding: 10px 15px;
+  
+  }
+}
 
+.sliderContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 25px;
+
+}
 h2 {
   font-size: 24px;
   color: $text-color;
@@ -80,99 +73,3 @@ button {
   }
 }
 
-.slider-container {
-  margin-bottom: 20px;
-  text-align: left; /* Ensure text and elements are aligned to the left */
-
-  label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: $text-color;
-  }
-
-  input[type="range"] {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .value {
-    margin-left: 10px;
-    font-size: 14px;
-    color: $text-color;
-  }
-
-  .remove-button {
-    background: $remove-button-bg-color;
-    color: $remove-button-color;
-    border: none;
-    margin-left: 12px;
-    cursor: pointer;
-  }
-}
-
-.lfo-settings {
-  margin-top: 10px;
-
-  label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: $text-color;
-  }
-
-  input[type="checkbox"] {
-    margin-right: 5px;
-  }
-
-  .waveform-select {
-    margin-bottom: 10px;
-  }
-
-  input[type="range"] {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .frequency,
-  .min-amplitude,
-  .max-amplitude {
-    display: flex;
-    align-items: center;
-
-    span {
-      margin-left: 10px;
-      font-size: 14px;
-      color: $text-color;
-    }
-  }
-}
-
-.cc-exception-container {
-  margin-bottom: 20px;
-
-  label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: $text-color;
-  }
-
-  select {
-    padding: 8px;
-    margin-bottom: 10px;
-    border: 1px solid $input-border-color;
-    border-radius: 4px;
-    background-color: $input-bg-color;
-    font-size: 14px;
-    color: $input-text-color;
-  }
-
-  .remove-button {
-    background: $remove-button-bg-color;
-    color: $remove-button-color;
-    border: none;
-    margin-left: 12px;
-    cursor: pointer;
-  }
-}
