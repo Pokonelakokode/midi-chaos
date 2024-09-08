@@ -1,50 +1,37 @@
 import React, { useState, useEffect } from 'react';
-
-interface MidiDevice {
-  id: string;
-  name: string;
-  device: WebMidi.MIDIPort;
-}
-
-type CCMessage = {
-  ccNumber: number;
-  value: number;
-  channel?: number;
-}
-
-type ProgramChange = {
-  programNumber: number;
-  channel?: number;
-}
+import styles from './MidiControl.module.scss';
+import useMidiHelpers from './midiUtils';
+import { MidiDevice, CCMessage, ProgramChange, WaveformType } from '../types/types';
+import MidiSlider from './components/MidiSlider/MidiSlider';
 
 const MaxMidiChannel = 4;
 
-type WaveformType = 'triangle' | 'ramp up' | 'ramp down' | 'square' | 'random';
+
 
 const MidiControl: React.FC = () => {
   const [midiAccess, setMidiAccess] = useState<WebMidi.MIDIAccess | null>(null);
   const [outputDevices, setOutputDevices] = useState<MidiDevice[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<MidiDevice | null>(null);
-  const [sliders, setSliders] = useState<{ 
-    id: number; 
-    channel: number | 'all'; 
-    ccNumber: number; 
-    value: number; 
-    type: 'cc' | 'program';
-    lfo: { 
-      enabled: boolean; 
-      frequency: number; 
-      minAmplitude: number; 
-      maxAmplitude: number; 
-      waveform: WaveformType;
-      lastRandomValue: number; // Add this line
-    } | null;
-    
-  }[]>([]);
   const [nextSliderId, setNextSliderId] = useState(1);
-  const [ccExceptions, setCCExceptions] = useState<{ id: number; ccNumber: number; channel: number | 'all'; }[]>([]);
-  const [nextExceptionId, setNextExceptionId] = useState(1);
-
+  const {
+    ccExceptions,
+    createCCMessages,
+    createProgramChangeMessages,
+    sendProgramChange,
+    sendCCMessage,
+    randomMessage,
+    randomProgramChange,
+    handleAddCCException,
+    handleCCExceptionNumberChange,
+    handleCCExceptionChannelChange,
+    handleRemoveSlider,
+    handleRemoveCCException,
+    setCCExceptions,
+    setNextExceptionId,
+    sliders,
+    setSliders,
+    selectedDevice,
+    setSelectedDevice
+  } = useMidiHelpers();
   useEffect(() => {
     if (navigator.requestMIDIAccess) {
       navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
@@ -52,68 +39,28 @@ const MidiControl: React.FC = () => {
       alert('WebMIDI is not supported in this browser.');
     }
   }, []);
+  const saveStateToLocalStorage = () => {
+    const state = {
+      selectedDevice: selectedDevice?.name,
+      sliders,
+      ccExceptions
+    };
+    localStorage.setItem('midiControlState', JSON.stringify(state));
+  };
+  const loadStateFromLocalStorage = () => {
+    const state = localStorage.getItem('midiControlState');
+    if (state) {
+      const { selectedDevice, sliders, ccExceptions } = JSON.parse(state);
+      handleDeviceChange(selectedDevice);
+      setSliders(sliders);
+      setCCExceptions(ccExceptions);
+    }
+  };
+  // useEffect(() => {
+  //   saveStateToLocalStorage();
+  // }, [selectedDevice, sliders, ccExceptions]);
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setSliders(prevSliders => prevSliders.map(slider => {
-        if (slider.lfo?.enabled) {
-          const now = Date.now();
-          const frequency = slider.lfo.frequency;
-          const minAmplitude = slider.lfo.minAmplitude;
-          const maxAmplitude = slider.lfo.maxAmplitude;
-          const period = 1000 / frequency; // LFO period in ms
-          const phase = ((now % period) / period) * 2 * Math.PI; // Phase of LFO
-          
-          let lfoValue;
-          switch (slider.lfo.waveform) {
-            case 'ramp up':
-              lfoValue = (phase / (2 * Math.PI));
-              break;
-            case 'ramp down':
-              lfoValue = 1 - (phase / (2 * Math.PI));
-              break;
-            case 'square':
-              lfoValue = phase < Math.PI ? 1 : 0;
-              break;
-              case 'random':
-                // Update the random value more frequently by reducing the period
-                const randomUpdateInterval = period / 10; // Increase the frequency of updates by reducing the interval
-                const lastRandomUpdateTime = slider.lfo.lastUpdateTime || now;
-                if (now - lastRandomUpdateTime > randomUpdateInterval) {
-                  slider.lfo.lastRandomValue = Math.random(); // Update random value
-                  slider.lfo.lastUpdateTime = now; // Update last update time
-                }
-                lfoValue = slider.lfo.lastRandomValue;
-                break;
-            case 'triangle':
-              lfoValue = Math.abs((2 / Math.PI) * Math.asin(Math.sin(phase)));
-              break;
-            default:
-              break;
-          }
   
-          const newValue = Math.floor(lfoValue * (maxAmplitude - minAmplitude) + minAmplitude);
-  
-          if (slider.value !== newValue) {
-            const updatedSlider = { ...slider, value: newValue };
-            if (selectedDevice) {
-              if (updatedSlider.type === 'cc') {
-                const ccMessages: CCMessage[] = createCCMessages(updatedSlider.ccNumber, newValue, updatedSlider.channel);
-                sendCCMessage(ccMessages);
-              } else {
-                const programChangeMessages: ProgramChange[] = createProgramChangeMessages(newValue, updatedSlider.channel);
-                sendProgramChange(programChangeMessages);
-              }
-            }
-            return updatedSlider;
-          }
-        }
-        return slider;
-      }));
-    }, 50);
-  
-    return () => clearInterval(intervalId);
-  }, [sliders, selectedDevice]);
 
   const onMIDISuccess = (midi: WebMidi.MIDIAccess) => {
     setMidiAccess(midi);
@@ -134,9 +81,8 @@ const MidiControl: React.FC = () => {
     console.error('Could not access your MIDI devices.');
   };
 
-  const handleDeviceChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const deviceId = event.target.value;
-    const device = outputDevices.find((d) => d.id === deviceId) || null;
+  const handleDeviceChange = (deviceId: string) => {
+    const device = outputDevices.find((d) => d.name === deviceId) || null;
     setSelectedDevice(device);
   };
 
@@ -194,257 +140,60 @@ const MidiControl: React.FC = () => {
 
 
 
-  const createCCMessages = (ccNumber: number, value: number, channel: number | 'all'): CCMessage[] => {
-    if (channel === 'all') {
-        return Array.from({ length: MaxMidiChannel }, (_, i) => i).map(ch => ({ ccNumber, value, channel: ch }));
-    } else {
-        return [{ ccNumber, value, channel }];
-    }
-};
-
-
-const createProgramChangeMessages = (programNumber: number, channel: number | 'all'): ProgramChange[] => {
-  if (channel === 'all') {
-      return Array.from({ length: MaxMidiChannel }, (_, i) => i).map(ch => ({ programNumber, channel: ch }));
-  } else {
-      return [{ programNumber, channel }];
-  }
-};
-
-const sendProgramChange = (messages: ProgramChange[]) => {
-  if (selectedDevice) {
-    console.log('sendProgramChange called with:', messages); // Log the messages
-
-    const device = selectedDevice.device as WebMidi.MIDIOutput;
-    
-    device.open().then(() => {
-      messages.forEach(message => {
-        const statusByte = 0xC0 + (message.channel || 0);
-        const programChangeMessage = [statusByte, message.programNumber];
-        device.send(programChangeMessage);
-        console.log('Sent Program Change message:', programChangeMessage); // Log each message sent
-      });
-    }).catch(error => console.error('Error sending Program Change message:', error)); // Log any errors
-  }
-};
-
-
-  const sendCCMessage = (messages: CCMessage[]) => {
-    if (selectedDevice) {
-      console.log('sendCCMessage called with:', messages); // Log the messages
-  
-      const device = selectedDevice.device as WebMidi.MIDIOutput;
-      
-      device.open().then(() => {
-        messages.forEach(message => {
-          const statusByte = 0xB0 + (message.channel || 0);
-          const controlChangeMessage = [statusByte, message.ccNumber, message.value];
-          device.send(controlChangeMessage);
-          console.log('Sent CC message:', controlChangeMessage); // Log each message sent
-        });
-      }).catch(error => console.error('Error sending CC message:', error)); // Log any errors
-    }
-  };
-  
-
-  const randomMessage = () => {
-    const minRandomCCNumber = 1; // Minimum CC number
-    const maxRandomCCNumber = 127; // Maximum CC number
-    const commands: CCMessage[] = [];
-    for (let midiChannel = 0; midiChannel < MaxMidiChannel; midiChannel++) {
-      for (let CCNumber = minRandomCCNumber; CCNumber <= maxRandomCCNumber; CCNumber++) {
-        const isExcluded = ccExceptions.some(
-          (exception) => exception.ccNumber === CCNumber && (exception.channel === 'all' || exception.channel === midiChannel)
-        );
-        if (!isExcluded) {
-          const randomValue = Math.floor(Math.random() * 128);
-          commands.push({ ccNumber: CCNumber, value: randomValue, channel: midiChannel });
-        }
-      }
-    }
-    sendCCMessage(commands);
-  };
-
-  const randomProgramChange = () => {
-    const minRandomProgramNumber = 1; // Minimum program number
-    const maxRandomProgramNumber = 50; // Maximum program number
-    const commands: ProgramChange[] = [];
-    for (let midiChannel = 0; midiChannel < MaxMidiChannel; midiChannel++) {
-      const randomValue = Math.floor(Math.random() * (maxRandomProgramNumber - minRandomProgramNumber + 1)) + minRandomProgramNumber;
-      commands.push({ programNumber: randomValue, channel: midiChannel });
-    }
-    sendProgramChange(commands);
-  };
-
-  const handleAddCCException = () => {
-    setCCExceptions([...ccExceptions, { id: nextExceptionId, ccNumber: 1, channel: 0 }]);
-    setNextExceptionId(nextExceptionId + 1);
-  };
-
-  const handleCCExceptionNumberChange = (id: number, ccNumber: number) => {
-    setCCExceptions(ccExceptions.map(exception => exception.id === id ? { ...exception, ccNumber } : exception));
-  };
-
-  const handleCCExceptionChannelChange = (id: number, channel: number | 'all') => {
-    setCCExceptions(ccExceptions.map(exception => exception.id === id ? { ...exception, channel } : exception));
-  };
-
-  const handleRemoveSlider = (id: number) => {
-    setSliders(sliders.filter(slider => slider.id !== id));
-  };
-
-  const handleRemoveCCException = (id: number) => {
-    setCCExceptions(ccExceptions.filter(exception => exception.id !== id));
-  };
-
   return (
-    <div>
+    <div className={styles.container}>
+      <div className={styles.saveLoadContainer}>
+      
+        <button onClick={saveStateToLocalStorage} className={styles.saveButton}>
+          Save State
+        </button>
+        <button onClick={() => loadStateFromLocalStorage()} className={styles.loadButton}>
+          Load State
+        </button>
+      </div>
       <h2>RP-X Midi Chaos</h2>
-      <select onChange={handleDeviceChange} value={selectedDevice?.id || ''}>
+      <select onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleDeviceChange(e.target.value)} value={selectedDevice?.name || ''} className={styles.select}>
         <option value="">-- Choose Midi OUT --</option>
         {outputDevices.map((device) => (
-          <option key={device.id} value={device.id}>
+          <option key={device.name} value={device.name}>
             {device.name}
           </option>
         ))}
       </select>
 
-      <button onClick={randomMessage} disabled={!selectedDevice}>
+      <button onClick={randomMessage} disabled={!selectedDevice} className={styles.button}>
         Random CC Messages
       </button>
-      <button onClick={randomProgramChange} disabled={!selectedDevice}>
+      <button onClick={randomProgramChange} disabled={!selectedDevice} className={styles.button}>
         Random Program Changes
       </button>
-      <button onClick={handleAddSlider} disabled={!selectedDevice}>
+      <button onClick={handleAddSlider} disabled={!selectedDevice} className={styles.button}>
         New Slider
       </button>
-      <button onClick={handleAddCCException} disabled={!selectedDevice}>
+      <button onClick={handleAddCCException} disabled={!selectedDevice} className={styles.button}>
         Random CC Exceptions
       </button>
-
-      {sliders.map(slider => (
-        <div key={slider.id} style={{ marginBottom: '10px' }}>
-          <label>
-            Type:
-            <select value={slider.type} onChange={(e) => handleTypeChange(slider.id, e.target.value as 'cc' | 'program')}>
-              <option value="cc">Midi CC#</option>
-              <option value="program">Program Change</option>
-            </select>
-          </label>
-
-          <label>
-            Midi Channel:
-            <select value={slider.channel === 'all' ? 'all' : slider.channel} onChange={(e) => handleChannelChange(slider.id, e.target.value === 'all' ? 'all' : parseInt(e.target.value))}>
-             {Array.from({ length: MaxMidiChannel + 1 }, (_, i) => i).map(channel => (
-             <option key={channel} value={channel === MaxMidiChannel ? 'all' : channel}>
-            {channel === MaxMidiChannel ? 'ALL' : channel}
-              </option>
-            ))}
-            </select>
-
-          </label>
-
-          {slider.type === 'cc' && (
-            <label>
-              CC Number:
-              <select value={slider.ccNumber} onChange={(e) => handleCCNumberChange(slider.id, parseInt(e.target.value))}>
-                {Array.from({ length: 127 }, (_, i) => i + 1).map(cc => (
-                  <option key={cc} value={cc}>
-                    {cc}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <input
-            type="range"
-            min="0"
-            max={slider.type === 'cc' ? 127 : 127}
-            value={slider.value}
-            onChange={(e) => handleSliderChange(slider.id, parseInt(e.target.value))}
+      <div className={styles.sliderContainer}>
+        {sliders.map(slider => 
+          <MidiSlider
+            key={slider.id}
+            slider={slider}
+            MaxMidiChannel={MaxMidiChannel}
+            handleTypeChange={handleTypeChange}
+            handleChannelChange={handleChannelChange}
+            handleCCNumberChange={handleCCNumberChange}
+            handleSliderChange={handleSliderChange}
+            handleRemoveSlider={handleRemoveSlider}
           />
-          <span style={{ marginLeft: '10px' }}>Value: {slider.value}</span>
+        )}
+      </div>
+      
 
-          {/* LFO Modulation Settings */}
-          
-            <div>
-              <label>
-                LFO:
-                <input
-                  type="checkbox"
-                  checked={!!slider.lfo?.enabled}
-                  onChange={(e) => handleLFOChange(slider.id, e.target.checked, slider.lfo?.frequency || 0.01, slider.lfo?.minAmplitude || 0, slider.lfo?.maxAmplitude || 127)}
-                />
-              </label>
-              {slider.lfo?.enabled && (
-                <div>
-                   <div>
-        <label>Waveform: </label>
-        <select
-            value={slider.lfo.waveform}
-            onChange={(e) => handleLFOChange(slider.id, true, slider.lfo.frequency, slider.lfo.minAmplitude, slider.lfo.maxAmplitude, e.target.value as WaveformType)}
-        >
-            <option value="triangle">Triangle</option>
-            <option value="ramp up">Ramp Up</option>
-            <option value="ramp down">Ramp Down</option>
-            <option value="square">Square</option>
-            <option value="random">Random</option>
-        </select>
-    </div>
-                  <label>
-                    
-                    Frequency:
-                    <input
-                      type="range"
-                      min="0.0001"
-                      max="3"
-                      step="0.0001"
-                      value={slider.lfo.frequency}
-                      onChange={(e) => handleLFOChange(slider.id, true, parseFloat(e.target.value), slider.lfo.minAmplitude, slider.lfo.maxAmplitude)}
-                    />
-                    <span style={{ marginLeft: '10px' }}>{slider.lfo.frequency}</span>
-                  </label>
-                  <label>
-                    Min:
-                    <input
-                      type="range"
-                      min="0"
-                      max="127"
-                      value={slider.lfo.minAmplitude}
-                      onChange={(e) => handleLFOChange(slider.id, true, slider.lfo.frequency, parseInt(e.target.value), slider.lfo.maxAmplitude)}
-                    />
-                    <span style={{ marginLeft: '10px' }}>{slider.lfo.minAmplitude}</span>
-                  </label>
-                  <label>
-                    Max:
-                    <input
-                      type="range"
-                      min="0"
-                      max="127"
-                      value={slider.lfo.maxAmplitude}
-                      onChange={(e) => handleLFOChange(slider.id, true, slider.lfo.frequency, slider.lfo.minAmplitude, parseInt(e.target.value))}
-                    />
-                    <span style={{ marginLeft: '10px' }}>{slider.lfo.maxAmplitude}</span>
-                  </label>
-                </div>
-              )}
-            </div>
-            
-
-
-          {/* Remove Button for Slider */}
-          <button onClick={() => handleRemoveSlider(slider.id)} style={{ background: 'white', color: 'red', border: 'none', marginLeft: '12px' }}>
-            X
-          </button>
-        </div>
-      ))}
-
-      {ccExceptions.map(exception => (
-        <div key={exception.id} style={{ marginBottom: '10px' }}>
+      {ccExceptions?.map(exception => (
+        <div key={exception.id} className={styles.ccExceptionContainer}>
           <label>
             CC Exception Number:
-            <select value={exception.ccNumber} onChange={(e) => handleCCExceptionNumberChange(exception.id, parseInt(e.target.value))}>
+            <select value={exception.ccNumber} onChange={(e) => handleCCExceptionNumberChange(exception.id, parseInt(e.target.value))} className={styles.select}>
               {Array.from({ length: 127 }, (_, i) => i + 1).map(cc => (
                 <option key={cc} value={cc}>
                   {cc}
@@ -454,18 +203,17 @@ const sendProgramChange = (messages: ProgramChange[]) => {
           </label>
           <label>
             Midi Channel:
-            <select value={exception.channel === 'all' ? 'all' : exception.channel} onChange={(e) => handleCCExceptionChannelChange(exception.id, e.target.value === 'all' ? 'all' : parseInt(e.target.value))}>
-            {Array.from({ length: MaxMidiChannel + 1 }, (_, i) => i).map(channel => (
-            <option key={channel} value={channel === MaxMidiChannel ? 'all' : channel}>
-            {channel === MaxMidiChannel ? 'ALL' : channel}
-            </option>
-            ))}
+            <select value={exception.channel === 'all' ? 'all' : exception.channel} onChange={(e) => handleCCExceptionChannelChange(exception.id, e.target.value === 'all' ? 'all' : parseInt(e.target.value))} className={styles.select}>
+              {Array.from({ length: MaxMidiChannel + 1 }, (_, i) => i).map(channel => (
+                <option key={channel} value={channel === MaxMidiChannel ? 'all' : channel}>
+                  {channel === MaxMidiChannel ? 'ALL' : channel}
+                </option>
+              ))}
             </select>
-
           </label>
-          
+
           {/* Remove Button for CC Exception */}
-          <button onClick={() => handleRemoveCCException(exception.id)} style={{ background: 'white', color: 'red', border: 'none', marginLeft: '12px' }}>
+          <button onClick={() => handleRemoveCCException(exception.id)} className={styles.removeButton}>
             X
           </button>
         </div>

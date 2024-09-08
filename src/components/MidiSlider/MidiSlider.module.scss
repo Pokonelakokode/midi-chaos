@@ -1,0 +1,129 @@
+@import '../../styles/variables.scss';
+
+.sliderContainer {
+  margin-bottom: 20px;
+  text-align: left;
+  /* Ensure text and elements are aligned to the left */
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  border: 1px solid $border-color;
+  border-radius: 4px;
+  padding: 12px 20px;
+  position: relative;
+
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: $text-color;
+  }
+  .hideButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: $remove-button-bg-color;
+    cursor: pointer;
+    animation: rotate 0.5s forwards;
+  }
+
+  
+
+  .range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: $button-bg-color;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  .range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: $text-color;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  .value {
+    margin-left: 10px;
+    font-size: 14px;
+    color: $text-color;
+  }
+
+  .remove-button {
+    background: $remove-button-bg-color;
+    color: $remove-button-color;
+    border: none;
+    margin-left: 12px;
+    cursor: pointer;
+  }
+}
+
+.lfo-settings {
+  margin-top: 10px;
+
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: $text-color;
+  }
+
+  input[type="checkbox"] {
+    margin-right: 5px;
+  }
+
+  .waveform-select {
+    margin-bottom: 10px;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .frequency,
+  .min-amplitude,
+  .max-amplitude {
+    display: flex;
+    align-items: center;
+
+    span {
+      margin-left: 10px;
+      font-size: 14px;
+      color: $text-color;
+    }
+  }
+}
+
+.cc-exception-container {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: $text-color;
+  }
+
+  select {
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid $input-border-color;
+    border-radius: 4px;
+    background-color: $input-bg-color;
+    font-size: 14px;
+    color: $input-text-color;
+  }
+
+  .remove-button {
+    background: $remove-button-bg-color;
+    color: $remove-button-color;
+    border: none;
+    margin-left: 12px;
+    cursor: pointer;
+  }
+}
