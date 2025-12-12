@@ -33,6 +33,8 @@ export interface CCMessage {
 }
 export interface Slider {
   id: number;
+  name?: string;
+  orientation?: 'horizontal' | 'vertical'; // Default to horizontal if undefined
   channel: number | 'all';
   ccNumber: number;
   value: number;
@@ -43,7 +45,7 @@ export interface Slider {
     minAmplitude: number;
     maxAmplitude: number;
     waveform: WaveformType;
-    lastRandomValue: number; 
+    lastRandomValue: number;
     lastUpdateTime: number;
   } | null;
 
@@ -54,4 +56,4 @@ export interface ProgramChange {
   programNumber: number;
   channel: number;
 }
-export type CCException = {id: number; ccNumber: number; channel: number | 'all'}
+export type CCException = { id: number; ccNumber: number; channel: number | 'all' }

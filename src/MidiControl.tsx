@@ -8,10 +8,14 @@ const MaxMidiChannel = 4;
 
 
 
+import SliderSetupModal from './components/SliderSetupModal/SliderSetupModal';
+
 const MidiControl: React.FC = () => {
   const [midiAccess, setMidiAccess] = useState<WebMidi.MIDIAccess | null>(null);
   const [outputDevices, setOutputDevices] = useState<MidiDevice[]>([]);
   const [nextSliderId, setNextSliderId] = useState(1);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+
   const {
     ccExceptions,
     createCCMessages,
@@ -54,13 +58,14 @@ const MidiControl: React.FC = () => {
       handleDeviceChange(selectedDevice);
       setSliders(sliders);
       setCCExceptions(ccExceptions);
+      const maxId = sliders.reduce((max: number, s: { id: number }) => Math.max(max, s.id), 0);
+      setNextSliderId(maxId + 1);
     }
   };
   // useEffect(() => {
   //   saveStateToLocalStorage();
   // }, [selectedDevice, sliders, ccExceptions]);
 
-  
 
   const onMIDISuccess = (midi: WebMidi.MIDIAccess) => {
     setMidiAccess(midi);
@@ -87,8 +92,21 @@ const MidiControl: React.FC = () => {
   };
 
   const handleAddSlider = () => {
-    setSliders([...sliders, { id: nextSliderId, channel: 0, ccNumber: 1, value: 0, type: 'cc', lfo: null }]);
+    setShowSetupModal(true);
+  };
+
+  const handleConfirmNewSlider = (name: string, orientation: 'horizontal' | 'vertical') => {
+    setSliders([...sliders, { id: nextSliderId, name: name || `Slider ${nextSliderId}`, orientation, channel: 0, ccNumber: 1, value: 0, type: 'cc', lfo: null }]);
     setNextSliderId(nextSliderId + 1);
+    setShowSetupModal(false);
+  };
+
+  const handleCancelNewSlider = () => {
+    setShowSetupModal(false);
+  };
+
+  const handleNameChange = (id: number, name: string) => {
+    setSliders(sliders.map(slider => slider.id === id ? { ...slider, name } : slider));
   };
 
   const handleSliderChange = (id: number, value: number) => {
@@ -118,40 +136,42 @@ const MidiControl: React.FC = () => {
   };
 
   const handleLFOChange = (id: number, enabled: boolean, frequency: number, minAmplitude: number, maxAmplitude: number, waveform?: WaveformType) => {
-    setSliders(sliders.map(slider => 
-      slider.id === id 
-        ? { 
-            ...slider, 
-            lfo: { 
-              enabled, 
-              frequency, 
-              minAmplitude, 
-              maxAmplitude, 
-              waveform: waveform || slider.lfo?.waveform || 'triangle',
-              lastRandomValue: slider.lfo?.lastRandomValue || Math.random(),
-              lastUpdateTime: slider.lfo?.lastUpdateTime || Date.now(), // Initialize lastUpdateTime
-            } 
-          } 
+    setSliders(sliders.map(slider =>
+      slider.id === id
+        ? {
+          ...slider,
+          lfo: {
+            enabled,
+            frequency,
+            minAmplitude,
+            maxAmplitude,
+            waveform: waveform || slider.lfo?.waveform || 'triangle',
+            lastRandomValue: slider.lfo?.lastRandomValue || Math.random(),
+            lastUpdateTime: slider.lfo?.lastUpdateTime || Date.now(), // Initialize lastUpdateTime
+          }
+        }
         : slider
     ));
   };
-  
-  
+
+
 
 
 
   return (
     <div className={styles.container}>
-      <div className={styles.saveLoadContainer}>
-      
-        <button onClick={saveStateToLocalStorage} className={styles.saveButton}>
-          Save State
-        </button>
-        <button onClick={() => loadStateFromLocalStorage()} className={styles.loadButton}>
-          Load State
-        </button>
+      <div className={styles.header}>
+        <h2>RP-X Midi Chaos</h2>
+        <div className={styles.saveLoadContainer}>
+          <button onClick={saveStateToLocalStorage} className={styles.saveButton}>
+            Save State
+          </button>
+          <button onClick={() => loadStateFromLocalStorage()} className={styles.loadButton}>
+            Load State
+          </button>
+        </div>
       </div>
-      <h2>RP-X Midi Chaos</h2>
+
       <select onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleDeviceChange(e.target.value)} value={selectedDevice?.name || ''} className={styles.select}>
         <option value="">-- Choose Midi OUT --</option>
         {outputDevices.map((device) => (
@@ -174,7 +194,7 @@ const MidiControl: React.FC = () => {
         Random CC Exceptions
       </button>
       <div className={styles.sliderContainer}>
-        {sliders.map(slider => 
+        {sliders.map(slider =>
           <MidiSlider
             key={slider.id}
             slider={slider}
@@ -183,11 +203,12 @@ const MidiControl: React.FC = () => {
             handleChannelChange={handleChannelChange}
             handleCCNumberChange={handleCCNumberChange}
             handleSliderChange={handleSliderChange}
+            handleNameChange={handleNameChange} // Pass the handler
             handleRemoveSlider={handleRemoveSlider}
           />
         )}
       </div>
-      
+
 
       {ccExceptions?.map(exception => (
         <div key={exception.id} className={styles.ccExceptionContainer}>
@@ -218,6 +239,13 @@ const MidiControl: React.FC = () => {
           </button>
         </div>
       ))}
+      {showSetupModal && (
+        <SliderSetupModal
+          onConfirm={handleConfirmNewSlider}
+          onCancel={handleCancelNewSlider}
+          initialName={`Slider ${nextSliderId}`}
+        />
+      )}
     </div>
   );
 };

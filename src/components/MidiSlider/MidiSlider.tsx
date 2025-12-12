@@ -10,13 +10,7 @@ import HideIcon from '../shared/icons/HideIcon/HideIcon';
 //   waveform: WaveformType;
 // }
 
-interface Slider {
-  id: number;
-  type: 'cc' | 'program';
-  channel: number | 'all';
-  ccNumber?: number;
-  value: number;
-}
+import { Slider } from '../../../types/types';
 
 interface MidiSliderProps {
   slider: Slider;
@@ -25,6 +19,7 @@ interface MidiSliderProps {
   handleChannelChange: (id: number, channel: number | 'all') => void;
   handleCCNumberChange: (id: number, ccNumber: number) => void;
   handleSliderChange: (id: number, value: number) => void;
+  handleNameChange: (id: number, name: string) => void;
   //   handleLFOChange: (id: string, enabled: boolean, frequency: number, minAmplitude: number, maxAmplitude: number, waveform?: WaveformType) => void;
   handleRemoveSlider: (id: number) => void;
 }
@@ -36,13 +31,25 @@ const MidiSlider: React.FC<MidiSliderProps> = ({
   handleChannelChange,
   handleCCNumberChange,
   handleSliderChange,
+  handleNameChange,
   handleRemoveSlider
 }) => {
   const [hideSettings, setHideSettings] = React.useState(false);
+  const containerClass = `${styles.sliderContainer} ${slider.orientation === 'vertical' ? styles.vertical : ''}`;
+
   return (
-    <div className={styles.sliderContainer}>
-      <HideIcon className={styles.hideButton} onClick={() => setHideSettings(!hideSettings)} hidden={hideSettings} />
-      
+    <div className={containerClass}>
+      <div className={styles.header}>
+        <input
+          type="text"
+          value={slider.name || ''}
+          onChange={(e) => handleNameChange(slider.id, e.target.value)}
+          className={styles.nameInput}
+          placeholder="Slider Name"
+        />
+        <HideIcon className={styles.hideButton} onClick={() => setHideSettings(!hideSettings)} hidden={hideSettings} />
+      </div>
+
       {!hideSettings && <div>
         <label>
           Type:

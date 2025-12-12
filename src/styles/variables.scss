@@ -1,28 +1,28 @@
-$background-color: #f9f9f9; // Very Light Gray
-$box-shadow-color: rgba(0, 0, 0, 0.1); // Light Shadow
-$text-color: #000000; // Black
-$border-color: #ccc; // Light Gray
+$background-color: #0f172a; // Deep Dark Blue/Black
+$box-shadow-color: rgba(0, 0, 0, 0.5); // Darker Shadow for depth
+$text-color: #f8fafc; // Light Gray/White for text
+$border-color: rgba(255, 255, 255, 0.1); // Subtle White Border
 
 // Button Colors
-$button-bg-color: #007bff; // Bright Blue
-$button-hover-bg-color: #0056b3; // Darker Blue
-$button-disabled-bg-color: #ccc; // Light Gray
-$remove-button-bg-color: #ffffff; // White
-$remove-button-color: #ff0000; // Bright Red
+$button-bg-color: #6366f1; // Indigo
+$button-hover-bg-color: #4f46e5; // Darker Indigo
+$button-disabled-bg-color: #334155; // Slate Gray
+$remove-button-bg-color: rgba(239, 68, 68, 0.2); // Red with opacity
+$remove-button-color: #ef4444; // Bright Red
 
 // Input Colors
-$input-bg-color: #f8f3f3; // Very Light Pink
-$input-text-color: #333333; // Dark Gray
-$input-border-color: #000000; // Black
+$input-bg-color: rgba(30, 41, 59, 0.5); // Slate with opacity (Glassmorphism)
+$input-text-color: #f1f5f9; // Slate 100
+$input-border-color: rgba(255, 255, 255, 0.2); // White with opacity
 
 // Complementary Colors
-$success-color: #28a745; // Green
-$warning-color: #ffca28; // Amber
-$info-color: #17a2b8; // Cyan
-$muted-color: #6c757d; // Muted Gray
-$highlight-color: #fd7e14; // Orange
+$success-color: #10b981; // Emerald
+$warning-color: #f59e0b; // Amber
+$info-color: #0ea5e9; // Sky
+$muted-color: #94a3b8; // Slate 400
+$highlight-color: #8b5cf6; // Violet
 
 // Additional Colors
-$header-footer-bg-color: #e9ecef; // Light Gray
-$link-color: #0056b3; // Blue
-$card-bg-color: #ffffff; // White
+$header-footer-bg-color: #1e293b; // Slate 800
+$link-color: #38bdf8; // Sky 400
+$card-bg-color: rgba(30, 41, 59, 0.4); // Slate 800 with opacity
